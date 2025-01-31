@@ -63,7 +63,7 @@ def window_func(signal:pd.Series, window_type='hann', window_fraction=1/16):
     return signal
 
 if __name__ == '__main__':
-    import BasicGenerator
+    import metrics.BasicGenerator as BasicGenerator
     frequencies = [0.15, 0.35, 0.45]
     magnitudes = [1, 0.5, 0.3]
 

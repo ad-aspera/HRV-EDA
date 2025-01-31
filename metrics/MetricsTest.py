@@ -2,8 +2,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import BasicGenerator
-import HRV_Metrics
+import metrics.BasicGenerator as BasicGenerator
+import metrics.HRV_Metrics as HRV_Metrics
 
 """example of how to use HRV_metrics module"""
 frequencies = [0.15, 0.35, 0.45]

@@ -13,7 +13,7 @@ Priority for Frequency domain measures: LF Bands, HF Bands, LF/HF
 #Dependencies
 import numpy as np
 import pandas as pd
-import SincPsd
+import metrics.SincPsd as SincPsd
 
 class TD_metrics:
     """class calculates time domain metrics for a pd.series type list of RR intervals"""
