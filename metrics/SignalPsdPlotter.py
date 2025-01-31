@@ -72,4 +72,4 @@ class SignalPsdPlotter():
 
 
         # Plot the signal and its PSD
-        self.plot_signal_and_psd(new_signal, psd, label, colour)
+        self.plot_signal_and_psd(signal, psd, label, colour)
