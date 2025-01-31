@@ -3,7 +3,9 @@ Created on Wed Jan 29 15:35:35 2025
 
 @author: henryhollingworth
 
-Based on the review:
+Edited by Povilas Saucivuienas on 
+
+Based on the review: 20256/01/31
 
 Shaffer, F. and Ginsberg, J.P., 2017. An overview of heart rate variability metrics and norms. Frontiers in Public Health, 5, p.258. Available at: https://pmc.ncbi.nlm.nih.gov/articles/PMC5624990/ [Accessed 28 Jan. 2025].
 
@@ -52,8 +54,9 @@ class FD_metrics:
     def __init__(self, data: pd.Series, sampling_frequency=100):
         if not isinstance(data, pd.Series):
             raise TypeError(f"Expected a pandas Series, but got {type(HRV_data).__name__}")
-        self.data = data.dropna().values
-        self.freq_domain_data = SincPsd.signal_to_PSD(self.data, sampling_frequency)
+        self.data = data
+
+        signal,self.freq_domain_data = SincPsd.sinc_and_psd(self.data, window='hann')
     
     def _get_band_power(self, low_freq, high_freq):
         """Helper method to calculate power in a specific frequency band"""
@@ -106,7 +109,10 @@ class FD_metrics:
     
     def LF_HF_ratio(self):
         """Ratio of LF to HF power"""
-        return self.LF_power() / self.HF_power()
+        try:
+            return self.LF_power() / self.HF_power()
+        except ZeroDivisionError:
+            return np.NaN
     
     def get_all_metrics(self):
         """Dictionary of frequency domain metrics"""

@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 
-class SincPsd():
-    """SINC (Whitetaker-Shanon) interpolation. Tested to work."""
-
 def signal_to_PSD(signal:pd.Series, sampling_freq = 100):
 
 
@@ -28,6 +25,7 @@ def sinc_interpolate(signal:pd.Series):
 
 def sinc_and_psd(signal:pd.Series, window=None, window_fraction=1/16):
     """SINC Interpolates and gets the PSD of a signal.
+    Returns signal and PSD
     Window options: 'hann', 'sin'; Fraction 1, windows the full data """
     signal = sinc_interpolate(signal)
 
@@ -36,7 +34,7 @@ def sinc_and_psd(signal:pd.Series, window=None, window_fraction=1/16):
 
    
 
-    signal, signal_to_PSD(signal, 1/np.mean(np.diff(signal.index)))
+    return signal, signal_to_PSD(signal, 1/np.mean(np.diff(signal.index)))
 
 
 def window_func(signal:pd.Series, window_type='hann', window_fraction=1/16):
@@ -56,9 +54,9 @@ def window_func(signal:pd.Series, window_type='hann', window_fraction=1/16):
     signal.iloc[:len(subwindow1)] *= subwindow1
     signal.iloc[-len(subwindow2):] *= subwindow2
 
-    print(f"{window_type} window applied over:")
-    print(f"left: index 0 to {len(subwindow1)-1}")
-    print(f"right: index {len(signal)-len(subwindow2)} to {len(signal)}")
+    #print(f"{window_type} window applied over:")
+    #print(f"left: index 0 to {len(subwindow1)-1}")
+    #print(f"right: index {len(signal)-len(subwindow2)} to {len(signal)}")
     
     return signal
 
