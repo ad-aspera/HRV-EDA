@@ -22,8 +22,10 @@ def _old_signal_to_PSD(signal: pd.Series, sampling_freq=100, min_5_limit = True,
     return PSD
 
 
-def signal_to_PSD(signal: pd.Series, sampling_freq=250, nperseg=4*1024,**args):
-    f, S = welch(signal, fs=sampling_freq, nperseg=nperseg)
+def signal_to_PSD(signal: pd.Series, sampling_freq=250, n_per_seg=4*1024,**args):
+   # if n_per_seg> len(signal):
+    #    n_per_seg = int(len(signal)/4)
+    f, S = welch(signal, fs=sampling_freq, nperseg=n_per_seg)
     return pd.Series(S, index=f, name='Energy')
 
 def _signal_shorten(signal:pd.Series):
