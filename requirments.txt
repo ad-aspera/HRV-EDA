@@ -1,0 +1,6 @@
+pandas
+xlwings
+nbformat>=4.2.0
+plotly
+numpy
+metrics
