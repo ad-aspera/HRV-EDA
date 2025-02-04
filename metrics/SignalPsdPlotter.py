@@ -2,6 +2,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+
 if __name__ == "__main__":
     import SincPsd
 else:
@@ -16,8 +17,6 @@ class SignalPsdPlotter():
         self.alpha = alpha
         self.upper_labels = upper_labels
         self.lower_labels = lower_labels
-
-
 
         d_vert = 0.06
         self.fig.update_layout(yaxis2=dict(domain=[0, 0.5-d_vert]), yaxis=dict(domain=[0.5+d_vert, 1]))
@@ -53,7 +52,7 @@ class SignalPsdPlotter():
         self.fig.update_xaxes(title_text=self.lower_labels[0], range=range, row=2, col=1)
         self.fig.update_yaxes(title_text=self.lower_labels[1], row=2, col=1, )
 
-    def show(self, domains=[[0,300], [0,1]]):
+    def show(self, domains=[[0,300], [0,0.5]]):
         def _remove_legend_duplicates():
             """Removes one of the paired traces"""
             unique_labels = set()
@@ -70,11 +69,7 @@ class SignalPsdPlotter():
         self.fig.update_layout(xaxis1=dict(domain=[0, .85]))
         self.fig.update_xaxes(range=domains[0], row=1, col=1)
         self.fig.update_xaxes(range=domains[1], row=2, col=1)
-        
 
-        
-
-        
 
         self.fig.show()
 
@@ -107,7 +102,9 @@ if __name__ == "__main__":
     for patient_id in selected_patients:
         patient_ds = peaks[patient_id]['DS'][0]
         patient_ds = pd.Series(patient_ds, index=patient_ds.cumsum() / 1000)
-        DS_RR[patient_id] = patient_ds
+
+        DS_RR[patient_id] = patient_ds[patient_ds.index<=300]
+
 
     # Create a plotter instance
     plotter = SignalPsdPlotter()

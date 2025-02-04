@@ -1,13 +1,37 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
+from scipy.signal import welch
 
-def signal_to_PSD(signal: pd.Series, sampling_freq=100):
+def _old_signal_to_PSD(signal: pd.Series, sampling_freq=100, min_5_limit = True, window='hann', window_fraction=1/16):
+    if window:
+        signal = window_func(signal, window, window_fraction)
+
+    if signal.mean()>100:
+        signal = signal/1000
+    signal = signal-signal.mean()
+
     fft = np.fft.fft(signal)
-    freq = np.fft.fftfreq(len(fft), 1/sampling_freq)
+
+    freq = np.fft.fftfreq(len(fft), 1/sampling_freq)  # noqa: E501
     PSD = pd.Series(abs(fft)**2, index=freq, name='Energy')
     PSD.index.name = 'Frequency'
+   # if min_5_limit:
+        #PSD = PSD[PSD.index >= 1/300]
+        #None
     return PSD
+
+
+def signal_to_PSD(signal: pd.Series, sampling_freq=250, nperseg=4*1024,**args):
+    f, S = welch(signal, fs=sampling_freq, nperseg=nperseg)
+    return pd.Series(S, index=f, name='Energy')
+
+def _signal_shorten(signal:pd.Series):
+  
+    length = len(signal)
+    power_of_two_length = 2**int(np.log2(length))
+    return signal.iloc[:power_of_two_length]
+
 
 def sinc_interpolate(signal: pd.Series):
     """Apply sinc interpolation to a signal.
@@ -24,9 +48,8 @@ def sinc_and_psd(signal: pd.Series, window=None, window_fraction=1/16):
     Returns signal and PSD
     Window options: 'hann', 'sin'; Fraction 1, windows the full data """
     signal = sinc_interpolate(signal)
-    if window:
-        signal = window_func(signal, window, window_fraction)
-    return signal, signal_to_PSD(signal, 1 / np.mean(np.diff(signal.index)))
+
+    return signal, signal_to_PSD(signal, 1 / np.mean(np.diff(signal.index)), window_fraction=window_fraction)
 
 def window_func(signal: pd.Series, window_type='hann', window_fraction=1/16):
     signal = signal.copy()

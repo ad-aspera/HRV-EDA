@@ -51,7 +51,7 @@ class TD_metrics:
     
 class FD_metrics:
     """class calculates frequency domain metrics for a pd.series type list of RR intervals"""
-    def __init__(self, data: pd.Series, sampling_frequency=100):
+    def __init__(self, data: pd.Series, sampling_frequency=250):
         if not isinstance(data, pd.Series):
             raise TypeError(f"Expected a pandas Series, but got {type(HRV_data).__name__}")
         self.data = data
