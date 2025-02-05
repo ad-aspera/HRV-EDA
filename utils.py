@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import Union
+import metrics.HRV_Metrics as HRV_Metrics
 Numeric = Union[float, int]
 
 
@@ -21,7 +22,7 @@ def signal_as_series_enforcer(func):
     return wrapper
 
 @signal_as_series_enforcer
-def time_divide_signal(signal: pd.Series, fragment_s: float = 300):
+def time_portion_signal(signal: pd.Series, fragment_s: float = 300):
     """Divides signal into 5 minutes internals.
     Signal index has to be in seconds"""
     five_min = []
@@ -57,10 +58,22 @@ if __name__ == "__main__":
     DS_RR = {}
     for patient_id in selected_patients:
         patient_ds = peaks[patient_id]['DS'][0]
-        patient_ds = time_divide_signal(patient_ds)
+        patient_ds = time_portion_signal(patient_ds)
 
         print(patient_ds)
 
+
+def patients_metrics(signal:pd.Series, sub_signal_duration_s=300)->pd.Series:
+    metrics = pd.DataFrame()
+    for i, subsignal in enumerate(time_portion_signal(signal, sub_signal_duration_s)):
+
+        metrics_dict = HRV_Metrics.get_td_and_fd_metrics(subsignal)
+
+        metrics_dict = {'t_start': i*300, 't_end': (i+1)*300, **metrics_dict}
+
+        metrics = pd.concat([metrics, pd.DataFrame([metrics_dict])], ignore_index=True)
+
+    return metrics
         
 
 

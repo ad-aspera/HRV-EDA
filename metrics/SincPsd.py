@@ -25,6 +25,8 @@ def _old_signal_to_PSD(signal: pd.Series, sampling_freq=100, min_5_limit = True,
 def signal_to_PSD(signal: pd.Series, sampling_freq=250, n_per_seg=4*1024,**args):
    # if n_per_seg> len(signal):
     #    n_per_seg = int(len(signal)/4)
+    # https://dsp.stackexchange.com/questions/81640/trying-to-understand-the-nperseg-effect-of-welch-method
+    n_per_seg = min(n_per_seg, len(signal))
     f, S = welch(signal, fs=sampling_freq, nperseg=n_per_seg)
     return pd.Series(S, index=f, name='Energy')
 
