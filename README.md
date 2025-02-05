@@ -2,6 +2,10 @@
 
 Please see [eda.ipynb](eda.ipynb) for the main analysis
 
+# HRV metrics from article derived peaks
+
+See [article_derived_HRV_data](article_derived_HRV_data) for the data
+
 # Signal as pd Series
 Most of functions in this repo treat signal as a Pandas Series:
 * Values are RR intervals in milliseconds
