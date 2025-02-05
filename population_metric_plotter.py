@@ -92,7 +92,7 @@ def population_metric_plotter(data, y_column, color_column):
 
     fig.update_yaxes(title_text=f"<b>{y_column}</b>", row=1, col=1)
 
-    fig.show()
+    #fig.show()
     pio.write_html(
         fig,
         file=f"html_plots/dpn_{y_column}_dashboard.html",
