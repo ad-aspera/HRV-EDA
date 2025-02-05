@@ -2,6 +2,7 @@ import pandas as pd
 from typing import Union
 import metrics.HRV_Metrics as HRV_Metrics
 Numeric = Union[float, int]
+import xlwings as xw
 
 
 def signal_as_series_enforcer(func):
@@ -74,6 +75,17 @@ def patients_metrics(signal:pd.Series, sub_signal_duration_s=300)->pd.Series:
         metrics = pd.concat([metrics, pd.DataFrame([metrics_dict])], ignore_index=True)
 
     return metrics
+
+
+
+def df_from_excel(path):
+    wb = xw.Book(path)
+    wb.app.api.Visible = False
+    wb.app.calculate()
+    wb.save()
+    #wb.close()
+    wb.app.quit()
+    return pd.read_excel(path)
         
 
 
