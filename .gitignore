@@ -1,10 +1,9 @@
 __pycache__/BasicGenerator.cpython-312.pyc
-*pyc
-__pycache__*
+*__pycache__*
 *.pyc
+
+html_plots/
+html_plots/
 metrics/__pycache__/SincPsd.cpython-311.pyc
 metrics/__pycache__/HRV_Metrics.cpython-311.pyc
 metrics/__pycache__/SincPsd.cpython-311.pyc
-
-html_plots/*
-html_plots/

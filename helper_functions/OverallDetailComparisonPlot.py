@@ -40,7 +40,7 @@ class OverallDetailComparisonPlot:
         self.fig.update_layout(
             width=width,
             height=height,
-            margin=dict(l=10, r=10, t=40, b=20),
+            margin=dict(l=5, r=5, t=40, b=10),
             title=dict(
                 text=self.bolden(self.title),
                 x=0.5,
@@ -48,6 +48,9 @@ class OverallDetailComparisonPlot:
                 yanchor='top'
             )
         )
+
+        #self.fig.update_layout(template="plotly_dark", paper_bgcolor="black", plot_bgcolor="black")
+
 
     def _create_overall_plot(self):
         """Creates the overall (hue_group only) plot on the left"""
@@ -59,11 +62,12 @@ class OverallDetailComparisonPlot:
             box=True,
             hover_data=self.data.columns,
             category_orders=self.category_orders,
+            
             violinmode="group",
         )
 
              
-        self.fig1.update_traces(width=1.1,spanmode="hard")
+        self.fig1.update_traces(width=1.9,spanmode="hard", side='positive')
         
         #Traces added separately to allow overriding data and hover
         return self.fig1
@@ -92,6 +96,9 @@ class OverallDetailComparisonPlot:
             category_orders=self.category_orders,
             **plot_args
         )
+
+        if plot_mode == "violin":
+            self.fig2.update_traces(width=2,spanmode="hard", side='positive')
 
         #Traces added separately to allow overriding data and hover
         return self.fig2
@@ -141,6 +148,7 @@ class OverallDetailComparisonPlot:
                 showticklabels=False,
             ),
         )
+        self.fig.update_yaxes(title_standoff=0, row=1, col=1)
 
         def _set_y_range():
             """Sets the y range for the overall plot"""
@@ -200,12 +208,13 @@ class OverallDetailComparisonPlot:
                 yanchor="top",
                 orientation="h",
                 traceorder="normal",
-                bgcolor="rgba(255, 255, 255, 0.5)",
+                bgcolor="rgba(255, 255, 255, 0.9)",
                 bordercolor="Black",
                 borderwidth=1,
             ),
         )
-        self.fig.update_yaxes(title_text=self.bolden(self.y_column), row=1, col=1)
+        self.fig.update_yaxes(title_text=self.bolden(self.y_column), row=1, col=1, automargin=True)
+        
     
     def override_axes_labels(self, x_label:str= None, y_label:str=None)->None:
         """Overrides the axes labels of the plot"""

@@ -5,3 +5,4 @@ plotly
 numpy
 metrics
 table
+statsmodels
