@@ -32,7 +32,7 @@ class default_plot_format():
     def set_palette():
         "sets Seaborn palette to plotly default"
 
-        palette = px.colors.qualitative.Light24
+        palette = px.colors.qualitative.Plotly
         
 
         palette, _ = px.colors.convert_colors_to_same_type(palette, colortype='tuple')

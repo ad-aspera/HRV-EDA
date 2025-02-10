@@ -28,18 +28,24 @@ def time_portion_signal(signal: pd.Series, fragment_s: float = 300):
     Signal index has to be in seconds"""
     five_min = []
 
-    for lower in range(fragment_s, int(signal.index.max()), fragment_s):
-        # Extract set length segment
-        segment = signal[(signal.index >= lower) & (signal.index < lower + fragment_s)]
+    
+    start_idx = 0
+    while start_idx < len(signal):
+        end_idx = start_idx
+        while end_idx < len(signal) and (signal.index[end_idx] - signal.index[start_idx]) < fragment_s:
+            end_idx += 1
 
-        # Reset index to start at 0
+        if end_idx == len(signal):
+            break
+
+        segment = signal.iloc[start_idx:end_idx]
         segment.index = segment.index - segment.index[0]
-        #print(segment)
+
         if segment.index[-1] < fragment_s / 2:
-            #print(segment.index[-1])
             break
 
         five_min.append(segment)
+        start_idx = end_idx
 
     if len(five_min) == 0:
         raise ValueError(f"The signal is too short to fraction into fragments of {fragment_s}s")
