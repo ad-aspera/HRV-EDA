@@ -5,3 +5,6 @@ __pycache__*
 metrics/__pycache__/SincPsd.cpython-311.pyc
 metrics/__pycache__/HRV_Metrics.cpython-311.pyc
 metrics/__pycache__/SincPsd.cpython-311.pyc
+
+html_plots/*
+html_plots/

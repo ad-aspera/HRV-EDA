@@ -1,6 +1,12 @@
-# EDA
+# Key files
 
-Please see [eda.ipynb](eda.ipynb) for the main analysis
+* [RR_to_metrics.ipynb](RR_to_metrics.ipynb) is used to calculate metrics from an array of RR values.
+
+
+* [eda.ipynb](eda.ipynb) is the main analysis of the signal.
+
+* [html_plots/](html_plots) stores the generated images.
+
 
 # HRV metrics from article derived peaks
 
