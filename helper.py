@@ -74,7 +74,7 @@ def patients_metrics(signal:pd.Series, sub_signal_duration_s=300)->pd.Series:
     metrics = pd.DataFrame()
     for i, subsignal in enumerate(time_portion_signal(signal, sub_signal_duration_s)):
 
-        metrics_dict = HRV_Metrics.get_td_and_fd_metrics(subsignal)
+        metrics_dict = HRV_Metrics.get_all_metrics(subsignal)
 
         metrics_dict = {'t_start': i*300, 't_end': (i+1)*300, **metrics_dict}
 
