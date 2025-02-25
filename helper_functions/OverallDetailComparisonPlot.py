@@ -40,7 +40,7 @@ class OverallDetailComparisonPlot:
         self.fig.update_layout(
             width=width,
             height=height,
-            margin=dict(l=5, r=5, t=40, b=10),
+            margin=dict(l=10, r=10, t=40, b=20),
             title=dict(
                 text=self.bolden(self.title),
                 x=0.5,
@@ -48,9 +48,6 @@ class OverallDetailComparisonPlot:
                 yanchor='top'
             )
         )
-
-        #self.fig.update_layout(template="plotly_dark", paper_bgcolor="black", plot_bgcolor="black")
-
 
     def _create_overall_plot(self):
         """Creates the overall (hue_group only) plot on the left"""
@@ -62,12 +59,11 @@ class OverallDetailComparisonPlot:
             box=True,
             hover_data=self.data.columns,
             category_orders=self.category_orders,
-            
             violinmode="group",
         )
 
              
-        self.fig1.update_traces(width=1.9,spanmode="hard", side='positive')
+        self.fig1.update_traces(width=1.1,spanmode="hard")
         
         #Traces added separately to allow overriding data and hover
         return self.fig1
@@ -96,9 +92,6 @@ class OverallDetailComparisonPlot:
             category_orders=self.category_orders,
             **plot_args
         )
-
-        if plot_mode == "violin":
-            self.fig2.update_traces(width=2,spanmode="hard", side='positive')
 
         #Traces added separately to allow overriding data and hover
         return self.fig2
@@ -148,7 +141,6 @@ class OverallDetailComparisonPlot:
                 showticklabels=False,
             ),
         )
-        self.fig.update_yaxes(title_standoff=0, row=1, col=1)
 
         def _set_y_range():
             """Sets the y range for the overall plot"""
@@ -208,13 +200,12 @@ class OverallDetailComparisonPlot:
                 yanchor="top",
                 orientation="h",
                 traceorder="normal",
-                bgcolor="rgba(255, 255, 255, 0.9)",
+                bgcolor="rgba(255, 255, 255, 0.5)",
                 bordercolor="Black",
                 borderwidth=1,
             ),
         )
-        self.fig.update_yaxes(title_text=self.bolden(self.y_column), row=1, col=1, automargin=True)
-        
+        self.fig.update_yaxes(title_text=self.bolden(self.y_column), row=1, col=1)
     
     def override_axes_labels(self, x_label:str= None, y_label:str=None)->None:
         """Overrides the axes labels of the plot"""
@@ -280,8 +271,11 @@ def _generate_test_data():
 if __name__ == "__main__":    
     import pandas as pd
     df = _generate_test_data()
+
     df["Promotion"] = pd.Categorical(df["Promotion"], categories=[1, 2, 3], ordered=True)
     df["MarketID"] = pd.Categorical(df["MarketID"], ordered=True)
+
+    
     
     plotter = OverallDetailComparisonPlot(
         df, 
@@ -299,5 +293,8 @@ if __name__ == "__main__":
     plotter.setup_general_layout(ratio=1/4)
 
     plotter.override_hover_data(["MarketID", "Promotion", "SalesInThousands", "LocationID"])
+
+
+
 
     plotter.show()

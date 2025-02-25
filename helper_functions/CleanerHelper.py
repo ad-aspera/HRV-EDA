@@ -24,10 +24,17 @@ class CleanerHelper:
         fig, axes = plt.subplots(3, 1, height_ratios=(1, 2, 2), figsize=(10, 4))
 
         sns.boxplot(x=self.data[col], ax=axes[0])
-        sns.violinplot(x=self.data[col], ax=axes[1])
-        sns.stripplot(
-            x=self.data[col], ax=axes[2], jitter=0.4, alpha=0.4, edgecolor="black"
+        sns.kdeplot(x=self.data[col], ax=axes[1], fill=True)
+        sns.stripplot(x=self.data[col], ax=axes[2], jitter=0.4, alpha=0.4, edgecolor="black"
         )
+
+        axes[0].set_ylabel('Boxplot', fontweight='bold')
+        axes[1].set_ylabel('KDE', fontweight='bold')
+        axes[2].set_ylabel('Stripplot', fontweight='bold')
+
+        for ax in axes:
+            ax.yaxis.set_visible(False)
+
         fig.suptitle(
             f"Numeric Distribution of {col} (n = {len(self.data[col])})",
             fontsize=10,
@@ -39,18 +46,18 @@ class CleanerHelper:
 
         for ax in axes[:-1]:
             ax.set_xlim(min_xlim, max_xlim)
-            ax.xaxis.grid(True)
+            #ax.xaxis.grid(True)
             ax.tick_params(
                 axis="x", which="both", bottom=False, top=False, labelbottom=False
             )
             ax.set_xlabel(None)
 
         axes[-1].set_xlim(min_xlim, max_xlim)
-        axes[-1].xaxis.grid(True)
+        #axes[-1].xaxis.grid(True)
 
         axes[-1].set_xlabel(col.title())
 
-        plt.tight_layout()
+        #plt.tight_layout()
         
 
     @staticmethod
@@ -96,6 +103,7 @@ class CleanerHelper:
 
         plt.xticks(rotation=20)
         #plt.grid(axis="y", linestyle="--", alpha=0.7)
+
 
         plt.title(f"Distribution of {col} (n={df.sum()})", fontweight="bold")
         plt.show()
@@ -156,7 +164,7 @@ class CleanerHelper:
         ax.set_xlabel(group_col, fontweight="bold")
         ax.set_ylabel(f"{agg_func.title()} of {val_col}", fontweight="bold")
 
-        ax.yaxis.grid(True, alpha=0.5)
+       # ax.yaxis.grid(False, alpha=0.5)
 
     def _label_containers(self, axis, agg_func):
         """Adds container data value labels.
@@ -244,7 +252,7 @@ class CleanerHelper:
         ax.set_ylabel('Density', fontweight='bold')
 
         ax.legend(title=f'{group_col.title()} Groups')
-        ax.xaxis.grid('x', linestyle='-', linewidth=0.5)
+        #ax.xaxis.grid('x', linestyle='-', linewidth=0.5)
         plt.show()
 
         if display_statistics:

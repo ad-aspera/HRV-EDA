@@ -14,12 +14,39 @@ def kaggle_download(url:str, path="."):
         url, path=path, unzip=True
     )
 
-def pd_display_settings(significant_figures = 4):
+def pd_display_settings(significant_figures = 3):
     def _display_rule(x:float|int)->str:
-        if int(x) == x or x>=1000:
+        if int(x) == x or x>=abs(1000):
             return f'{x:.0f}'
+        elif abs(x) > 0.1:
+            return f'{x:.{2}f}'
+
         return f'{x:.{significant_figures}g}'
     pd.options.display.float_format = _display_rule
+
+
+def duplicates(data):
+    duplicate_columns = {
+        'Column': [],
+        'Total duplicates count': [],
+        'Unique values': []
+    }
+    
+    for col in data.columns:
+        duplicate_columns['Column'].append(col)
+        duplicate_columns['Total duplicates count'].append(data[col].duplicated().sum())
+        duplicate_columns['Unique values'].append(len(data[col].unique()))
+
+        if data[col].duplicated().sum() == len(data):
+            duplicate_columns['Unique values'][-1] = 'All values are duplicates'
+
+    
+    duplicates_df = pd.DataFrame(duplicate_columns)
+    duplicates_df.loc[-1] = ['Whole df row', data.duplicated().sum(), len(data.drop_duplicates())]
+    duplicates_df.index = duplicates_df.index + 1
+    duplicates_df = duplicates_df.sort_index()
+
+    return duplicates_df
 
 
 class default_plot_format():
@@ -75,10 +102,6 @@ def chi_squared_test(data, row_col, col_col):
     display(results_df.transpose())
 
     merged_table = pd.concat([contingency_table, expected], axis=1, keys=['Observed', 'Expected'])
-
-
-    merged_table.insert(len(contingency_table.columns), ('', '', ), '')
-    merged_table.insert(len(contingency_table.columns) + 1, (' ', ' ', ), ' ')
     
     print("\n","The Observed and Expected distributions of instances:")
     display(merged_table)

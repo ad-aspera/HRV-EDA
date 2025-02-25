@@ -4,10 +4,18 @@ import pandas as pd
 
 
 class CorrectedMultivariableTest:
-    def __init__(self, data:pd.DataFrame, group_col:str, target_col:str, cat_col:str, cat_val_1:str, cat_val_2:str, alpha=0.05):
+    def __init__(self, data:pd.DataFrame, group_col:str, value_col:str, cat_col:str, cat_val_1:str, cat_val_2:str, alpha=0.05):
+        """
+        group col - defines separate groups for each of which the test will be performed
+        value col - the column containing the target variable
+        cat col - the column containing the categories to be compared
+        cat val 1 - the first category to be compared
+        cat val 2 - the second category to be compared
+        alpha - the significance level for the Benjamini-Hochberg correction
+        """
         self.data = data
         self.group_col = group_col
-        self.target_col = target_col
+        self.target_col = value_col
         self.cat_col = cat_col
         self.cat1 = cat_val_1
         self.cat2 = cat_val_2
@@ -46,7 +54,8 @@ class CorrectedMultivariableTest:
             test_results.append({
                 self.group_col: group_id,
                 'U_statistic': stat,
-                'p_value': p_val
+                'p_value': p_val,
+                'significant': p_val < self.alpha,
             })
 
         return test_results
@@ -68,7 +77,9 @@ class CorrectedMultivariableTest:
             test_results.append({
                 self.group_col: group_id,
                 't_statistic': stat,
-                'p_value': p_val
+                'p_value': p_val,
+                'significant': p_val < self.alpha,
+        
             })
 
         return test_results
@@ -76,6 +87,7 @@ class CorrectedMultivariableTest:
     def _apply_bh_correction(self, test_results:pd.DataFrame)->pd.DataFrame:
         """
         Apply Benjamini-Hochberg correction to a dataframe p-values.
+        Return the result with two extra column - BH_corrected_p_value and BH_Significant.
         """
         p_values = [result['p_value'] for result in test_results]
         p_values_sorted_indices = np.argsort(p_values)
@@ -85,7 +97,7 @@ class CorrectedMultivariableTest:
             rank = i + 1
             bh_threshold = (rank / n) * self.alpha
             test_results[index]['BH_corrected_p_value'] = p_values[index] * self.alpha / bh_threshold
-            test_results[index]['Significant'] = p_values[index] < self.alpha
+            test_results[index]['BH_Significant'] = test_results[index]['BH_corrected_p_value'] < self.alpha
 
         test_results_df = pd.DataFrame(test_results)
         test_results_df.set_index(self.group_col, inplace=True)
@@ -113,7 +125,7 @@ if __name__ == "__main__":
     df = pd.DataFrame(data)
 
     # Initialize the CorrectedMultivariableTest class
-    test = CorrectedMultivariableTest(data=df, group_col='Group', target_col='Value', cat_col='Category', cat_val_1='Cat1', cat_val_2='Cat2')
+    test = CorrectedMultivariableTest(data=df, group_col='Group', value_col='Value', cat_col='Category', cat_val_1='Cat1', cat_val_2='Cat2')
 
     # Perform t-tests
     t_test_results = test.perform_t_tests()
