@@ -9,6 +9,7 @@ import os
 import plotly.express as px
 import plotly.io as pio
 from typing import Literal
+import plotly.graph_objects as go
 
 
 class OverallDetailComparisonPlot:
@@ -63,7 +64,7 @@ class OverallDetailComparisonPlot:
         )
 
              
-        self.fig1.update_traces(width=1.1,spanmode="hard")
+        self.fig1.update_traces(width=1.5,spanmode="hard", side = 'positive')
         
         #Traces added separately to allow overriding data and hover
         return self.fig1
@@ -93,12 +94,14 @@ class OverallDetailComparisonPlot:
             **plot_args
         )
 
+        if plot_mode == "violin":
+            self.fig2.update_traces(spanmode="hard", side = 'positive')
+
         #Traces added separately to allow overriding data and hover
         return self.fig2
     
 
     def _add_all_traces(self):
-
         def _add_traces(fig, row, col):
             """Adds traces to the main figure"""
             for trace in fig.data:
@@ -107,6 +110,8 @@ class OverallDetailComparisonPlot:
         
         _add_traces(self.fig1, row=1, col=1)
         _add_traces(self.fig2, row=1, col=2)
+
+      
 
         self.update_legend()
 
@@ -283,7 +288,7 @@ if __name__ == "__main__":
         x_column="MarketID", 
         hue_column="Promotion",
         title ="Hello",
-        detail_mode="box",
+        detail_mode="violin",
         points="all",
         category_orders={"Promotion": [1, 2, 3]}
     )
