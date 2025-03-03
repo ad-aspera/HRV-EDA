@@ -86,7 +86,11 @@ if __name__ == "__main__":
     DS_RR = {}
     for patient_id in selected_patients:
         patient_ds = peaks[patient_id]['DS'][0]
-        patient_ds = time_portion_signal(patient_ds)
+        # Update to handle the tuple return value (segments, segments_info)
+        patient_segments, patient_segments_info = time_portion_signal(patient_ds)
+        print(f"Patient {patient_id} has {len(patient_segments)} segments")
+        for i, (segment, (t_start, t_end)) in enumerate(zip(patient_segments, patient_segments_info)):
+            print(f"  Segment {i}: start={t_start:.2f}s, end={t_end:.2f}s, duration={t_end-t_start:.2f}s")
 
 
 def df_from_excel(path):

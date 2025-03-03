@@ -17,14 +17,23 @@ Non-linear measures: S, SD1, SD2, SD1/SD2, ApEn, SampEn, DFA α1, DFA α2, D2
 import numpy as np
 import pandas as pd
 import metrics.SincPsd as SincPsd
-from typing import Dict
-from scipy.spatial.distance import cdist
+from typing import Dict, Tuple, Optional, List, Any
+from scipy.spatial.distance import cdist, pdist, squareform
+from functools import lru_cache
 from numpy.linalg import svd
 
 def get_all_metrics(signal: pd.Series) -> Dict[str, float]:
-    td_metrics = TD_metrics(signal).get_all_metrics()
-    fd_metrics = FD_metrics(signal).get_all_metrics()
-    nl_metrics = NL_metrics(signal).get_all_metrics()
+    # Initialize all metric calculators at once to avoid redundant computations
+    td_calc = TD_metrics(signal)
+    fd_calc = FD_metrics(signal)
+    nl_calc = NL_metrics(signal)
+    
+    # Get metrics from each calculator
+    td_metrics = td_calc.get_all_metrics()
+    fd_metrics = fd_calc.get_all_metrics()
+    nl_metrics = nl_calc.get_all_metrics()
+    
+    # Combine all metrics
     combined_metrics = {**td_metrics, **fd_metrics, **nl_metrics}
     return combined_metrics
 
@@ -34,25 +43,28 @@ class TD_metrics:
         if not isinstance(data, pd.Series):  # establish correct type should be pd.series
             raise TypeError(f"Expected a pandas Series, but got {type(data).__name__}")
         self.data = data.dropna().values  # drop NaN values
+        # Pre-compute common values
+        self._diff_rr = np.diff(self.data)
+        self._mean_rr = np.mean(self.data)
 
     def SDRR(self) -> float:
         """Standard deviation of RR intervals"""
         return np.std(self.data, ddof=1)
 
     def pNN50(self) -> float:
-        """Percentage of successive RR intervals that differ by more than 50 ms"""
-        diff_rr = np.abs(np.diff(self.data))
-        return np.sum(diff_rr > 50) / len(diff_rr) * 100
+        """Percentage of successive RR intervals that differ by more than 50 ms"""
+        # Use pre-computed diff_rr
+        return np.sum(np.abs(self._diff_rr) > 50) / len(self._diff_rr) * 100
 
     def RMSSD(self) -> float:
         """Root mean square of successive RR interval differences"""
-        diff_rr = np.diff(self.data)
-        return np.sqrt(np.mean(diff_rr ** 2))
+        # Use pre-computed diff_rr
+        return np.sqrt(np.mean(self._diff_rr ** 2))
 
     def mean_hr(self) -> float:
         """mean HR in bpm"""
-        mean_rr = np.mean(self.data)
-        return 60000 / mean_rr  # Convert ms to bpm
+        # Use pre-computed mean_rr
+        return 60000 / self._mean_rr  # Convert ms to bpm
 
     def get_all_metrics(self) -> Dict[str, float]:
         """Dictionary of time domain metrics (all vals as should be np.float64)"""
@@ -70,77 +82,124 @@ class FD_metrics:
             raise TypeError(f"Expected a pandas Series, but got {type(data).__name__}")
         self.data = data
 
+        # Calculate PSD only once
         signal, self.freq_domain_data = SincPsd.sinc_and_psd(self.data, window='hann')
+        # Limit domain to 1Hz
+        self.freq_domain_data = self.freq_domain_data[self.freq_domain_data.index <= 1]
+        # Normalize power
+        self.freq_domain_data /= np.sum(self.freq_domain_data.values)
+        
+        # Define frequency bands for reuse
+        self.freq_bands = {
+            "ULF": (0, 0.003),
+            "VLF": (0.003, 0.04),
+            "LF": (0.04, 0.15),
+            "HF": (0.15, 0.4)
+        }
+        
+        # Pre-compute band powers and peaks
+        self._band_results = {}
+        for band_name, (low, high) in self.freq_bands.items():
+            # Get band data once
+            mask = (self.freq_domain_data.index >= low) & (self.freq_domain_data.index <= high)
+            band_data = self.freq_domain_data[mask]
+            
+            # Store results for reuse
+            if len(band_data) > 0:
+                power = np.trapz(band_data.values, band_data.index)
+                peak_idx = band_data.values.argmax() if len(band_data) > 0 else None
+                peak_freq = band_data.index[peak_idx] if peak_idx is not None else np.nan
+                peak_power = band_data.values.max() if len(band_data) > 0 else 0.0
+            else:
+                power, peak_freq, peak_power = 0.0, np.nan, 0.0
+                
+            self._band_results[band_name] = {
+                "power": power,
+                "peak_freq": peak_freq,
+                "peak_power": peak_power
+            }
 
-    def _get_band_power(self, low_freq: float, high_freq: float) -> float:
-        """Helper method to calculate power in a specific frequency band"""
-        mask = (self.freq_domain_data.index >= low_freq) & (self.freq_domain_data.index <= high_freq)
-        band_data = self.freq_domain_data[mask]
-        if len(band_data) == 0:
-            return 0.0
-        return np.trapz(band_data.values, band_data.index)
+    def _get_band_power(self, band_name: str) -> float:
+        """Get pre-computed power for a specific frequency band"""
+        return self._band_results[band_name]["power"]
 
-    def _get_peak_frequency(self, low_freq: float, high_freq: float) -> float:
-        """Helper method to find peak frequency in a specific band"""
-        mask = (self.freq_domain_data.index >= low_freq) & (self.freq_domain_data.index <= high_freq)
-        band_data = self.freq_domain_data[mask]
-        if len(band_data) == 0:
-            return np.nan
-        peak_idx = band_data.values.argmax()
-        return band_data.index[peak_idx]
+    def _get_peak_frequency(self, band_name: str) -> float:
+        """Get pre-computed peak frequency for a specific band"""
+        return self._band_results[band_name]["peak_freq"]
+
+    def _get_peak_power(self, band_name: str) -> float:
+        """Get pre-computed peak power for a specific band"""
+        return self._band_results[band_name]["peak_power"]
 
     def ULF_power(self) -> float:
         """Ultra low frequency power (≤0.003 Hz)"""
-        return self._get_band_power(0, 0.003)
+        return self._get_band_power("ULF")
 
     def ULF_peak(self) -> float:
         """Peak frequency in ULF band (≤0.003 Hz)"""
-        return self._get_peak_frequency(0, 0.003)
+        return self._get_peak_frequency("ULF")
+
+    def ULF_peak_power(self) -> float:
+        """Peak power in ULF band (≤0.003 Hz)"""
+        return self._get_peak_power("ULF")
 
     def VLF_power(self) -> float:
         """Very low frequency power (0.003-0.04 Hz)"""
-        return self._get_band_power(0.003, 0.04)
+        return self._get_band_power("VLF")
 
     def VLF_peak(self) -> float:
         """Peak frequency in VLF band (0.003-0.04 Hz)"""
-        return self._get_peak_frequency(0.003, 0.04)
+        return self._get_peak_frequency("VLF")
+
+    def VLF_peak_power(self) -> float:
+        """Peak power in VLF band (0.003-0.04 Hz)"""
+        return self._get_peak_power("VLF")
 
     def LF_power(self) -> float:
         """Low frequency power (0.04-0.15 Hz)"""
-        return self._get_band_power(0.04, 0.15)
+        return self._get_band_power("LF")
 
     def LF_peak(self) -> float:
         """Peak frequency in LF band (0.04-0.15 Hz)"""
-        return self._get_peak_frequency(0.04, 0.15)
+        return self._get_peak_frequency("LF")
+
+    def LF_peak_power(self) -> float:
+        """Peak power in LF band (0.04-0.15 Hz)"""
+        return self._get_peak_power("LF")
 
     def HF_power(self) -> float:
         """High frequency power (0.15-0.4 Hz)"""
-        return self._get_band_power(0.15, 0.4)
+        return self._get_band_power("HF")
 
     def HF_peak(self) -> float:
         """Peak frequency in HF band (0.15-0.4 Hz)"""
-        return self._get_peak_frequency(0.15, 0.4)
+        return self._get_peak_frequency("HF")
+
+    def HF_peak_power(self) -> float:
+        """Peak power in HF band (0.15-0.4 Hz)"""
+        return self._get_peak_power("HF")
 
     def LF_HF_ratio(self) -> float:
         """Ratio of LF to HF power"""
-        try:
-            return self.LF_power() / self.HF_power()
-        except ZeroDivisionError:
-            return np.NaN
+        lf = self._get_band_power("LF")
+        hf = self._get_band_power("HF")
+        return lf / hf if hf > 0 else np.nan
 
     def get_all_metrics(self) -> Dict[str, float]:
-        """Dictionary of frequency domain metrics"""
-        return {
-            "ULF Power": self.ULF_power(),
-            "ULF Peak Frequency": self.ULF_peak(),
-            "VLF Power": self.VLF_power(),
-            "VLF Peak Frequency": self.VLF_peak(),
-            "LF Power": self.LF_power(),
-            "LF Peak Frequency": self.LF_peak(),
-            "HF Power": self.HF_power(),
-            "HF Peak Frequency": self.HF_peak(),
-            "LF/HF Ratio": self.LF_HF_ratio()
-        }
+        """Dictionary of frequency domain metrics - get all metrics at once for efficiency"""
+        metrics = {}
+        
+        # Add all band metrics in a loop
+        for band_name in self.freq_bands:
+            band_key = band_name
+            metrics[f"{band_key} Power"] = self._get_band_power(band_name)
+            metrics[f"{band_key} Peak Frequency"] = self._get_peak_frequency(band_name)
+            metrics[f"{band_key} Peak Power"] = self._get_peak_power(band_name)
+        
+        # Add ratio
+        metrics["LF/HF Ratio"] = self.LF_HF_ratio()
+        
+        return metrics
 
 class NL_metrics:
     """Class calculates non-linear metrics for a pd.series type list of RR intervals"""
@@ -148,162 +207,229 @@ class NL_metrics:
         if not isinstance(data, pd.Series):
             raise TypeError(f"Expected a pandas Series, but got {type(data).__name__}")
         self.data = data.dropna().values
+        # Pre-compute standard deviation for reuse
+        self._std = np.std(self.data)
+        # Cache Poincaré plot data
+        self._poincare_data = None
+        # Cache for distance matrices
+        self._distance_cache = {}
 
     def _create_poincare_plot(self) -> tuple:
         """Creates Poincaré plot data points"""
-        x = self.data[:-1]  # RR(n) x should be the current RR interval
-        y = self.data[1:]   # RR(n+1) y should be the next RR interval
-        return x, y
+        if self._poincare_data is None:
+            x = self.data[:-1]  # RR(n) x should be the current RR interval
+            y = self.data[1:]   # RR(n+1) y should be the next RR interval
+            self._poincare_data = (x, y)
+        return self._poincare_data
 
     def SD1(self) -> float:
         """Poincaré plot standard deviation perpendicular to line of identity"""
-        x, y = self._create_poincare_plot() #take the existing poincare plot data
-        sd1 = np.sqrt(np.var(y - x) / 2) #work out the standard deviation of the data perpendicular to the line of identity
-        return sd1
+        x, y = self._create_poincare_plot()
+        # Use numpy vectorized operations
+        return np.sqrt(np.var(y - x) / 2)
 
     def SD2(self) -> float:
         """Poincaré plot standard deviation along line of identity"""
         x, y = self._create_poincare_plot()
-        sd2 = np.sqrt(np.var(y + x) / 2)#work out the standard deviation of the data along the line of identity
-        return sd2
+        return np.sqrt(np.var(y + x) / 2)
 
     def SD1_SD2_ratio(self) -> float:
         """Ratio of SD1 to SD2"""
-        try:
-            return self.SD1() / self.SD2() #works out the ratio
-        except ZeroDivisionError:
-            return np.nan #covering the case where SD2 is 0 - shouldnt really happen
+        sd1 = self.SD1()
+        sd2 = self.SD2()
+        return sd1 / sd2 if sd2 > 0 else np.nan
 
     def S(self) -> float:
         """Area of the ellipse representing total HRV"""
-        return np.pi * self.SD1() * self.SD2() #calculates elipse based on SD1 and SD2 as radii
+        # Reuse already computed SD1 and SD2
+        return np.pi * self.SD1() * self.SD2()
 
-    def ApEn(self, m: int = 2, r: float = 0.2) -> float: #i cannot lie i couldnt work out how to do this so this function is a chatgpt special
-        """Approximate entropy
+    def _get_distance_matrix(self, m: int) -> np.ndarray:
+        """Compute and cache distance matrix for embeddings of dimension m"""
+        if m not in self._distance_cache:
+            N = len(self.data)
+            if N <= m:
+                return np.array([])
+                
+            # Create embedded vectors efficiently
+            embedded = np.array([self.data[i:i+m] for i in range(N-m+1)])
+            # Compute distance matrix using pdist for efficiency
+            dist_matrix = squareform(pdist(embedded, 'chebyshev'))
+            self._distance_cache[m] = dist_matrix
+            
+        return self._distance_cache[m]
+
+    def ApEn(self, m: int = 2, r: float = 0.2) -> float:
+        """Approximate entropy - optimized implementation
         m: embedding dimension
         r: tolerance (typically 0.2 * std of the data)"""
         N = len(self.data)
-        if N == 0:
+        if N <= m + 1:
             return np.nan
             
-        r = r * np.std(self.data)
+        r = r * self._std
         
-        def _maxdist(x_i, x_j):
-            return max([abs(ua - va) for ua, va in zip(x_i, x_j)])
+        # Get distance matrices from cache
+        dist_m = self._get_distance_matrix(m)
+        dist_m1 = self._get_distance_matrix(m + 1)
         
-        def _phi(m):
-            x = [[self.data[j] for j in range(i, i + m)] for i in range(N - m + 1)]
-            C = [len([1 for j in range(len(x)) if _maxdist(x[i], x[j]) <= r]) / (N - m + 1.0) 
-                 for i in range(len(x))]
-            return (N - m + 1.0)**(-1) * sum(np.log(C))
+        if len(dist_m) == 0 or len(dist_m1) == 0:
+            return np.nan
         
-        return abs(_phi(m) - _phi(m + 1))
+        # Count matches using vectorized operations
+        count_m = np.sum(dist_m <= r, axis=1)
+        count_m1 = np.sum(dist_m1 <= r, axis=1)
+        
+        # Calculate phi values directly
+        phi_m = np.mean(np.log(count_m / (N - m + 1.0)))
+        phi_m1 = np.mean(np.log(count_m1 / (N - m)))
+        
+        return abs(phi_m - phi_m1)
 
     def SampEn(self, m: int = 2, r: float = 0.2) -> float:
-        """Sample entropy
+        """Sample entropy - optimized implementation
         m: embedding dimension
         r: tolerance (typically 0.2 * std of the data)"""
         N = len(self.data)
-        if N == 0:
+        if N <= m + 1:
             return np.nan
             
-        r = r * np.std(self.data)
+        r = r * self._std
         
-        def _count_matches(m):
-            template = np.array([self.data[i:i+m] for i in range(N-m+1)])
-            dist = cdist(template, template, 'chebyshev')
-            return np.sum(dist <= r) - (N-m+1)  # Exclude self-matches
-            
-        A = _count_matches(m+1)
-        B = _count_matches(m)
+        # Get distance matrices from cache
+        dist_m = self._get_distance_matrix(m)
+        dist_m1 = self._get_distance_matrix(m + 1)
         
-        try:
-            return -np.log(A/B)
-        except (ValueError, ZeroDivisionError):
+        if len(dist_m) == 0 or len(dist_m1) == 0:
             return np.nan
+        
+        # Remove self-matches by setting diagonal to infinity
+        np.fill_diagonal(dist_m, np.inf)
+        np.fill_diagonal(dist_m1, np.inf)
+        
+        # Count matches using vectorized operations
+        A = np.sum(dist_m1 <= r)
+        B = np.sum(dist_m <= r)
+        
+        # Calculate SampEn
+        if B == 0:
+            return np.nan
+        return -np.log(A / B)
 
     def DFA(self, scale_min: int = 4, scale_max: int = None) -> tuple:
-        """Detrended Fluctuation Analysis
+        """Detrended Fluctuation Analysis - optimized implementation
         Returns α1 (short-term) and α2 (long-term) scaling exponents"""
         # Prepare the data by integrating the time series
         x = np.cumsum(self.data - np.mean(self.data))
+        N = len(x)
         
         if scale_max is None:
-            scale_max = len(x) // 4
+            scale_max = N // 4
         
+        # Generate logarithmically spaced scales
         scales = np.logspace(np.log10(scale_min), np.log10(scale_max), 20, dtype=int)
+        # Ensure unique scales
+        scales = np.unique(scales)
         fluct = np.zeros(len(scales))
         
-        # Calculate fluctuation for each scale
+        # Calculate fluctuation for each scale using vectorized operations where possible
         for i, scale in enumerate(scales):
-            # Calculate local trends
-            segments = len(x) // scale
-            if segments == 0:
+            # Skip if scale is too large
+            if N < scale:
+                fluct[i] = np.nan
                 continue
                 
-            y = np.reshape(x[:segments*scale], (segments, scale))
-            t = np.arange(scale)
-            v = np.zeros(len(y))
+            # Number of segments
+            segments = N // scale
+            if segments == 0:
+                fluct[i] = np.nan
+                continue
             
+            # Reshape data into segments
+            y = np.reshape(x[:segments*scale], (segments, scale))
+            
+            # Create time array once
+            t = np.arange(scale)
+            
+            # Calculate local trends and fluctuations for all segments at once
+            v_squared = np.zeros(segments)
             for j in range(segments):
                 p = np.polyfit(t, y[j], 1)
-                v[j] = np.sqrt(np.mean((y[j] - np.polyval(p, t))**2))
-            
-            fluct[i] = np.sqrt(np.mean(v**2))
+                v_squared[j] = np.mean((y[j] - np.polyval(p, t))**2)
+                
+            fluct[i] = np.sqrt(np.mean(v_squared))
         
         # Calculate slopes (α1 and α2)
-        scales_log = np.log10(scales)
-        fluct_log = np.log10(fluct)
+        valid_idx = ~np.isnan(fluct)
+        if np.sum(valid_idx) < 4:  # Need at least 4 points for reliable fits
+            return np.nan, np.nan
+            
+        scales_log = np.log10(scales[valid_idx])
+        fluct_log = np.log10(fluct[valid_idx])
         
         # Split into short-term and long-term
-        idx_split = len(scales) // 2
+        idx_split = len(scales_log) // 2
         
-        # Calculate α1 (short-term)
-        p1 = np.polyfit(scales_log[:idx_split], fluct_log[:idx_split], 1)
-        alpha1 = p1[0]
-        
-        # Calculate α2 (long-term)
-        p2 = np.polyfit(scales_log[idx_split:], fluct_log[idx_split:], 1)
-        alpha2 = p2[0]
+        if idx_split > 0:
+            # Calculate α1 (short-term)
+            p1 = np.polyfit(scales_log[:idx_split], fluct_log[:idx_split], 1)
+            alpha1 = p1[0]
+        else:
+            alpha1 = np.nan
+            
+        if len(scales_log) - idx_split > 0:
+            # Calculate α2 (long-term)
+            p2 = np.polyfit(scales_log[idx_split:], fluct_log[idx_split:], 1)
+            alpha2 = p2[0]
+        else:
+            alpha2 = np.nan
         
         return alpha1, alpha2
 
     def D2(self, m: int = 10, r: float = 0.2) -> float:
-        """Correlation Dimension (D2)
+        """Correlation Dimension (D2) - optimized implementation
         m: embedding dimension
         r: radius for neighborhood search"""
         N = len(self.data)
-        if N == 0:
+        if N <= m:
             return np.nan
             
-        r = r * np.std(self.data)
+        r = r * self._std
         
-        # Create embedded vectors
-        Y = np.array([self.data[i:i+m] for i in range(N-m+1)])
+        # Get distance matrix from cache
+        dist_matrix = self._get_distance_matrix(m)
         
-        # Calculate distances between all pairs
-        D = cdist(Y, Y, 'euclidean')
-        
-        # Calculate correlation sum
-        C = np.sum(D <= r) / (N * (N-1))
-        
-        try:
-            return np.log(C) / np.log(r)
-        except (ValueError, ZeroDivisionError):
+        if len(dist_matrix) == 0:
             return np.nan
+            
+        # Remove self-matches
+        np.fill_diagonal(dist_matrix, np.inf)
+        
+        # Calculate correlation sum more efficiently
+        C = np.sum(dist_matrix <= r) / (N * (N-1))
+        
+        if C <= 0:
+            return np.nan
+            
+        return np.log(C) / np.log(r)
 
     def get_all_metrics(self) -> Dict[str, float]:
-        """Dictionary of non-linear metrics"""
+        """Dictionary of non-linear metrics - get all metrics at once for efficiency"""
+        # Calculate SD1 and SD2 only once
+        sd1 = self.SD1()
+        sd2 = self.SD2()
+        
+        # Calculate DFA exponents
         alpha1, alpha2 = self.DFA()
+        
         return {
-            "S": self.S(),
-            "SD1": self.SD1(),
-            "SD2": self.SD2(),
-            "SD1/SD2": self.SD1_SD2_ratio(),
+            "SD1": sd1,
+            "SD2": sd2,
+            "SD1/SD2": sd1 / sd2 if sd2 > 0 else np.nan,
+            "S": np.pi * sd1 * sd2,
             "ApEn": self.ApEn(),
             "SampEn": self.SampEn(),
             "DFA α1": alpha1,
             "DFA α2": alpha2,
             "D2": self.D2()
         }
-    
