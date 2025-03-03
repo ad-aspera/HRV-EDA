@@ -86,22 +86,22 @@ class CorrectedMultivariableTest:
 
     def _apply_bh_correction(self, test_results:pd.DataFrame)->pd.DataFrame:
         """
-        Apply Benjamini-Hochberg correction to a dataframe p-values.
+        Apply Benjamini-Hochberg correction to a data frame p-values.
         Return the result with two extra column - BH_corrected_p_value and BH_Significant.
         """
-        p_values = [result['p_value'] for result in test_results]
-        p_values_sorted_indices = np.argsort(p_values)
-        n = len(p_values)
+        if not isinstance(test_results, pd.DataFrame):
+            test_results = pd.DataFrame(test_results)
 
-        for i, index in enumerate(p_values_sorted_indices):
-            rank = i + 1
-            bh_threshold = (rank / n) * self.alpha
-            test_results[index]['BH_corrected_p_value'] = p_values[index] * self.alpha / bh_threshold
-            test_results[index]['BH_Significant'] = test_results[index]['BH_corrected_p_value'] < self.alpha
+        n = len(test_results)
 
-        test_results_df = pd.DataFrame(test_results)
-        test_results_df.set_index(self.group_col, inplace=True)
-        test_results_df.sort_index(inplace=True)
+        test_results['rank'] = test_results['p_value'].rank(ascending=False, method='first')
+        test_results['BH_threshold'] = (test_results['rank'] / n) * self.alpha
+        #test_results['BH_corrected_p_value'] = test_results['p_value'] * n / test_results['rank']
+        test_results['BH_Significant'] = test_results['p_value'] < test_results['BH_threshold']
+
+        test_results.set_index(self.group_col, inplace=True)
+        test_results.sort_index(inplace=True)
+        test_results_df = test_results
 
         return test_results_df
     
