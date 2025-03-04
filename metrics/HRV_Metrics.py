@@ -213,6 +213,7 @@ class NL_metrics:
         self._poincare_data = None
         # Cache for distance matrices
         self._distance_cache = {}
+        self._sd1_sd2 = None
 
     def _create_poincare_plot(self) -> tuple:
         """Creates Poincaré plot data points"""
@@ -222,22 +223,33 @@ class NL_metrics:
             self._poincare_data = (x, y)
         return self._poincare_data
 
+    def _calculate_sd1_sd2(self) -> Tuple[float, float]:
+        """Calculate both SD1 and SD2 together"""
+        if self._sd1_sd2 is None:
+            x, y = self._create_poincare_plot()
+            sd1 = np.sqrt(np.var(y - x) / 2)
+            sd2 = np.sqrt(np.var(y + x) / 2)
+            self._sd1_sd2 = (sd1, sd2)
+        return self._sd1_sd2
+
     def SD1(self) -> float:
         """Poincaré plot standard deviation perpendicular to line of identity"""
-        x, y = self._create_poincare_plot()
-        # Use numpy vectorized operations
-        return np.sqrt(np.var(y - x) / 2)
+        return self._calculate_sd1_sd2()[0]
 
     def SD2(self) -> float:
         """Poincaré plot standard deviation along line of identity"""
-        x, y = self._create_poincare_plot()
-        return np.sqrt(np.var(y + x) / 2)
+        return self._calculate_sd1_sd2()[1]
 
     def SD1_SD2_ratio(self) -> float:
         """Ratio of SD1 to SD2"""
-        sd1 = self.SD1()
-        sd2 = self.SD2()
+        sd1, sd2 = self._calculate_sd1_sd2()
         return sd1 / sd2 if sd2 > 0 else np.nan
+
+    def S(self) -> float:
+        """Area of the ellipse representing total HRV"""
+        sd1, sd2 = self._calculate_sd1_sd2()
+        return np.pi * sd1 * sd2
+
 
     def S(self) -> float:
         """Area of the ellipse representing total HRV"""

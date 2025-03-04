@@ -12,7 +12,7 @@ def make_decile_column(data: pd.DataFrame, column: str):
 def draw_by_decile(data, column, x= 1000, y= 400):
     title = f"{column} in PDR patients"
     plotter = OverallDetailComparisonPlot(
-        data=data.sort_values("DPN", ascending=True),
+        data=data.sort_values(["DPN", 'id'], ascending=True),
         x_column="id",
         y_column=column,
         hue_column=f"{column}_decile",
