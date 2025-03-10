@@ -29,7 +29,8 @@ class CorrectedMultivariableTest:
         test_methods = {
             't_test': self._t_tests,
             'mann_whitney': self._mann_whitney_u_tests,
-            'permutation': lambda: self._permutation_test(**kwargs)
+            'permutation': lambda: self._permutation_test(**kwargs),
+            #'wilcoxon': self._Wilcoxon_Rank_Sum_test
         }
         
         if test_method not in test_methods:
@@ -37,6 +38,8 @@ class CorrectedMultivariableTest:
             
         test_results = test_methods[test_method]()
         return self._apply_bh_correction(test_results)
+    
+
     
     def _get_group_category_data(self, group_id):
         """Extract data for a specific group and both categories"""
