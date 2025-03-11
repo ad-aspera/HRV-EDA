@@ -121,3 +121,18 @@ def draw_by_decile(data, column, x= 1000, y= 400):
 
     plotter.setup_general_layout(x, y, 1 / 4)
     plotter.show()
+
+def produce_median_melt(data, metrics):
+    median_df = data.groupby(['id', 'DPN'])[metrics].median()
+    median_df = median_df.reset_index()
+
+
+    median_melted = pd.melt(
+        median_df, 
+        id_vars=['id', 'DPN'], 
+        value_vars=metrics,
+        var_name='metric', 
+        value_name='value'
+    ).reset_index(drop=True)
+
+    return median_melted
