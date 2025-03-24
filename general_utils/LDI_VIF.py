@@ -47,7 +47,7 @@ def get_vif(data:pd.DataFrame, exclude_columns:list[str] = None) -> pd.DataFrame
     return vif_data
     
 
-def plot_vif(data:pd.DataFrame, height=5):
+def plot_vif(data:pd.DataFrame, height=5, dataset = "HRV"):
     nan_columns = data[data.isna().any(axis=1)]["feature"].tolist()
 
 
@@ -56,7 +56,7 @@ def plot_vif(data:pd.DataFrame, height=5):
     plt.figure(figsize=(8, height))
    
     sns.barplot(x="VIF Value", y="feature", hue="VIF Type", data=melted_data, dodge=True)
-    plt.title(f"VIF for wine variables; Excluded VIF for {nan_columns}")
+    plt.title(f"VIF for {dataset} metrics; Excluded variables: {nan_columns}")
     plt.legend()
     plt.xscale('log')
     plt.grid(axis='x', linestyle='-', alpha=0.5)
@@ -140,3 +140,19 @@ def show_linear_lda_stats(lda, columns):
     plt.show()
    # display(df)
     return df
+
+
+def show_correlation(data, title = "Features correlation (spearman) table", figsize = (12, 6)):
+
+    correlation_matrix = data.corr(method='spearman')
+    mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+    plt.figure(figsize=figsize)
+
+    sns.heatmap(correlation_matrix, mask=mask, cmap='coolwarm', vmax=1, vmin=-1, center=0,
+                annot=True, fmt='.2f')
+
+    plt.title(title, fontsize=16)
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.show()
+
