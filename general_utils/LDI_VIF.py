@@ -99,12 +99,15 @@ def perform_lda(data, columns = None, n_components=1):
 
 def plot_linear_lda(lda_df, title = 'LDA Results', cluster_colors = ['blue', 'red']):
     plt.figure(figsize=(10, 1))
-    sns.scatterplot(x=lda_df[0], y=[0] * len(lda_df), hue=lda_df['Cluster'], palette=cluster_colors, s=100, alpha=0.7)
+    # Add jitter to y-axis for better visibility
+    jitter = np.random.normal(0, 0.25, size=len(lda_df))
+    sns.scatterplot(x=lda_df[0], y=jitter, hue=lda_df['Cluster'], palette=cluster_colors, s=80, alpha=0.7, edgecolor='black', linewidth=1)
     plt.yticks([])
     plt.xlabel('LDA Component 1')
     plt.title(title)
     
     plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')
+    plt.ylim(-1, 1)
     plt.show()
 
 def show_linear_lda_stats(lda, columns):

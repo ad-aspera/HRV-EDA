@@ -65,7 +65,7 @@ def plot_evaluation_metrics(res, y_true, title="Evaluation Metrics", figsize=(12
     """
     Plot confusion matrix and ROC curve for the model evaluation.
     """
-    fig, axes = plt.subplots(1, 2, figsize=figsize)
+    fig, axes = plt.subplots(1, 2, figsize=figsize, width_ratios=[1, 1.5])
 
     # Plot confusion matrix
     ConfusionMatrixDisplay(res['confusion_matrix'], display_labels=['False', 'True']).plot(ax=axes[0])
