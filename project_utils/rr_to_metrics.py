@@ -99,8 +99,7 @@ def df_from_excel(path):
     wb.app.calculate()
     wb.save()
     #wb.close()
-    wb.app.quit()
-    return pd.read_excel(path)
+    wb.app.quit()    return pd.read_excel(path)
 
 
 
