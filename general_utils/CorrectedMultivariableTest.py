@@ -37,6 +37,8 @@ class CorrectedMultivariableTest:
             raise ValueError(f"Test method '{test_method}' not supported")
             
         test_results = test_methods[test_method]()
+        
+
         return self._apply_bh_correction(test_results)
     
 
@@ -59,6 +61,7 @@ class CorrectedMultivariableTest:
             result[self.group_col] = group_id
             test_results.append(result)
 
+        #result['p_value'] = result['p_value'].apply(lambda p: p if p <= 0.5 else 1 - p)
         return test_results
 
     def _mann_whitney_u_tests(self):
@@ -94,12 +97,17 @@ class CorrectedMultivariableTest:
                 permutation_type='independent', 
                 n_resamples=n_permutations
             )
+
+            
             return {
                 'distribution': result.null_distribution,
                 'perm_statistic': result.statistic,
                 'p_value': result.pvalue,
                 'significant': result.pvalue < self.alpha,
             }
+        
+        test_results = self._run_test_for_groups(run_test)
+        
         
         return self._run_test_for_groups(run_test)
 

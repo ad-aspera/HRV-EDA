@@ -52,21 +52,30 @@ def plot_vif(data:pd.DataFrame, height=5, dataset = "HRV"):
 
 
     value_vars = ["Full VIF"] if "Excluded VIF" not in data.columns else ["Full VIF", "Excluded VIF"]
+
     melted_data = data.melt(id_vars=["feature"], value_vars=value_vars, var_name="VIF Type", value_name="VIF Value")
+
     plt.figure(figsize=(8, height))
    
     sns.barplot(x="VIF Value", y="feature", hue="VIF Type", data=melted_data, dodge=True)
     plt.title(f"VIF for {dataset} metrics; Excluded variables: {nan_columns}")
+    
     plt.legend()
     plt.xscale('log')
     plt.grid(axis='x', linestyle='-', alpha=0.5)
     plt.grid(axis='x', linestyle='--', which='minor',alpha = 0.5)
     plt.tight_layout()
-    plt.show()
 
 
+def plot_vif_exclude(data, exclude, end_early = False):
+    data = data.copy()
+    if isinstance(exclude, str):
+        exclude = [exclude]
 
-def lda_vif_exclude(data, exclude):
+    plot_vif(get_vif(data.drop(columns =['id', 'DPN']), exclude_columns=exclude))
+
+
+def lda_vif_exclude(data, exclude, end_early = False):
     data = data.copy()
     if isinstance(exclude, str):
         exclude = [exclude]
@@ -75,6 +84,7 @@ def lda_vif_exclude(data, exclude):
     data = data.drop(columns=exclude)
     indicator_columns = data.columns[2:]
     lda_df, lda = perform_lda(data, indicator_columns)
+
     plot_linear_lda(lda_df, f"HRV LDA with excluded {exclude}")
     show_linear_lda_stats(lda, indicator_columns)
 
@@ -108,7 +118,7 @@ def plot_linear_lda(lda_df, title = 'LDA Results', cluster_colors = ['blue', 're
     
     plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')
     plt.ylim(-1, 1)
-    plt.show()
+
 
 def show_linear_lda_stats(lda, columns):
     #print("Explained variance ratio: ", lda.explained_variance_ratio_)
