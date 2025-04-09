@@ -113,10 +113,12 @@ def plot_linear_lda(lda_df, title = 'LDA Results', cluster_colors = ['blue', 're
     jitter = np.random.normal(0, 0.25, size=len(lda_df))
     sns.scatterplot(x=lda_df[0], y=jitter, hue=lda_df['Cluster'], palette=cluster_colors, s=80, alpha=0.7, edgecolor='black', linewidth=1)
     plt.yticks([])
-    plt.xlabel('LDA Component 1')
+    plt.xlabel('LDA Component (AU)')
     plt.title(title)
-    
-    plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')
+    handles, labels = plt.gca().get_legend_handles_labels()
+    plt.legend(handles, ['Control', 'DPN'])
+    plt.legend(handles, ['Control', 'DPN'], loc='center left', bbox_to_anchor=(1, 0.5))
+
     plt.ylim(-1, 1)
 
 
