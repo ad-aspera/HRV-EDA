@@ -169,5 +169,4 @@ def show_correlation(data, title = "Features correlation (spearman) table", figs
     plt.title(title, fontsize=16)
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    plt.show()
 
