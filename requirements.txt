@@ -1,0 +1,8 @@
+numpy
+pandas
+xlwings
+nbformat>=4.2.0
+plotly
+metrics
+table
+scikit-learn
