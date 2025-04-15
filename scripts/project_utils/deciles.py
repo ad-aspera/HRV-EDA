@@ -1,5 +1,5 @@
 import pandas as pd
-from general_utils.OverallDetailComparisonPlot import OverallDetailComparisonPlot
+from scripts.general_utils.OverallDetailComparisonPlot import OverallDetailComparisonPlot
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.colors import ListedColormap
