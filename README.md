@@ -4,9 +4,9 @@ The report itself can be found in parent folder.
 
 The dataset analysed was  [Dataset on electrocardiograph, sleep and metabolic function of male type 2 diabetes mellitus  2023](https://data.mendeley.com/datasets/9c47vwvtss/4).
 
-Accompanying ECG RR detection algorithm can be found in sister folder.
+Due to small size HRV data is included. The ECG R-eak detection algorithm and accompanying analysis can be found in sister folder.
 
-Data file can be found separately.
+
 
 ## Disclaimer
 
